@@ -1,2 +1,2 @@
-# personal_finance
+# Personal Finance
 Track income and spending

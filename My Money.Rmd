@@ -1,0 +1,134 @@
+---
+title: "KP's Money"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(flexdashboard, DT, knitr, kableExtra)
+
+source('R/Expense - 02 - Explore.R')
+```
+
+Visuals
+======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Annual Spending
+```{r}
+P_Savings_Expense
+```
+
+
+### Weekly Spending
+```{r}
+P_Weekly_Expense
+```
+
+### Net Worth
+```{r}
+P_Net_Worth
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+
+### Proportion of Expenses
+```{r}
+P_Expense_Proportion
+```
+
+
+### Monthly Expenses
+```{r}
+P_Monthly_Expenses
+```
+
+
+### Savings
+```{r}
+P_Savings
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Monthly Grocery Expenses
+```{r}
+# plot_type_nest$Week_Groceries
+plot_type_nest$Month_Groceries
+```
+
+### Monthly Fuel Expenses
+```{r}
+# plot_type_nest$Week_Fuel
+plot_type_nest$Month_Fuel
+```
+
+### Monthly Dining Expenses
+```{r}
+plot_type_nest$Month_Dining
+```
+
+### Monthly Drink Expenses
+```{r}
+plot_type_nest$Month_Drinks
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Monthly Entertainment Expenses
+```{r}
+plot_type_nest$Month_Entertainment
+```
+
+### Monthly Misc. Expenses
+```{r}
+plot_type_nest$Month_Misc
+```
+
+### Monthly Subscription Expenses
+```{r}
+plot_type_nest$Month_Subscription
+```
+
+### Monthly Travel Expenses
+```{r}
+plot_type_nest$Month_Travel
+```
+
+
+Tables
+======================================================================
+
+### Raw Expense List
+```{r}
+datatable(Expenses %>% mutate_at(vars(Type), factor),
+          filter = "top",
+          class = 'cell-border stripe',
+          options = list(pageLength = 15,
+                         autoWidth = TRUE))
+```
+
+### Costco Summary
+```{r}
+kable(Table_Costco) %>% kable_styling()
+```
+
+### Expense / Savings Ratio
+```{r}
+kable(Table_Rates) %>% kable_styling()
+```
+ 
+

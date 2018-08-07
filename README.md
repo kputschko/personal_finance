@@ -11,4 +11,4 @@ The tracking is a simple, yet manual process.  In an Excel spreadsheet, I docume
  
 The scripts contained in this project will create summary tables and visualizations for the recorded expenses.
 
-![](dashboard.png)
+![](dashboard.PNG)

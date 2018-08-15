@@ -126,8 +126,7 @@ Tables
 datatable(d_expense %>% mutate_at(vars(Type), factor),
           filter = "top",
           class = 'cell-border stripe',
-          options = list(pageLength = 15,
-                         autoWidth = TRUE))
+          options = list(pageLength = 15, autoWidth = TRUE))
 ```
 
 

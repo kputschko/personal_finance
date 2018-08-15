@@ -4,20 +4,9 @@
 source('R/Expense - 01 - Data Prep.R')
 
 
-pacman::p_load(
-  tidyquant,
-  ggthemes,
-  viridis,
-  highcharter,
-  plotly,
-  rio,
-  caTools,
-  lubridate,
-  forcats,
-  tidyverse,
-  formattable,
-  RColorBrewer
-)
+pacman::p_load(tidyquant, ggthemes, viridis, highcharter, plotly,
+               rio, caTools, lubridate, forcats, tidyverse, formattable,
+               RColorBrewer)
 
 
 Expense_List <-
@@ -35,34 +24,10 @@ Expense_List <-
     "Healthcare")
 
 
-
-
-# | ggplot - Individual Expenses ------------------------------------------
-
-# G_Individual_Expenses <-
-#   Narrow_D %>%
-#
-#   filter(!Type %in% c("Rent", "Auto", "Healthcare", "Fees"),
-#          Category == "Expense") %>%
-#   mutate(Week = floor_date(Day, "week")) %>%
-#   group_by(Week, Type) %>%
-#   summarise(Week_Sum = sum(Amount)) %>%
-#
-#   ggplot(aes(x = Week, y = Week_Sum)) +
-#   facet_wrap(~Type, scales = "free_y") +
-#   scale_y_continuous(name = NULL, labels = NULL) +
-#   geom_line(color = "darkgray") +
-#   geom_smooth(span = .2, se = FALSE) +
-#   theme_tq() +
-#   scale_x_date(name = NULL, date_labels = "%b %Y")
-
-
-
-
 # | Plotly - Net Worth ------------------------------------------------------
 
 P_Net_Worth <-
-  Narrow_D %>%
+  d_daily %>%
 
   plot_ly(x = ~Day,
           y = ~Net_Worth,
@@ -104,7 +69,7 @@ P_Net_Worth <-
 # | Plotly - Savings v Expense --------------------------------------------
 
 P_Savings_Expense <-
-  Table_Years %>%
+  d_annually %>%
 
   group_by(Year) %>%
   mutate(Prop = Sum / dplyr::last(Sum)) %>%
@@ -114,15 +79,12 @@ P_Savings_Expense <-
           color = ~Category,
           colors = c("#66bd63", "#a6d96a", "#fdae61", "#f46d43"),
           type = "bar",
-          text = ~paste(percent(Prop, 0), "\n", currency(Sum)),
+          text = ~ str_c(scales::percent(Prop), "\n", scales::dollar(Sum)),
           hoverinfo = "text",
           marker = list(line = list(color = "white", width = 1))) %>%
 
-  layout(xaxis = list(title = "",
-                      zeroline = FALSE),
-         yaxis = list(title = "",
-                      autorange = "reversed",
-                      zeroline = FALSE)
+  layout(xaxis = list(title = "", zeroline = FALSE),
+         yaxis = list(title = "", autorange = "reversed", zeroline = FALSE)
   )
 
 
@@ -130,10 +92,8 @@ P_Savings_Expense <-
 
 # | Plotly - Expense Proportions ------------------------------------------
 
-# Narrow_D %>% count(Type)
-
 P_Expense_Proportion <-
-  Narrow_D %>%
+  d_daily %>%
 
   filter(Type %in% Expense_List,
          Day < floor_date(Sys.Date(), "month")) %>%
@@ -165,7 +125,7 @@ P_Expense_Proportion <-
 
 
 P_Monthly_Expenses <-
-  Narrow_D %>%
+  d_daily %>%
 
   filter(Type %in% Expense_List,
          Day < floor_date(Sys.Date(), "month")) %>%
@@ -195,7 +155,7 @@ P_Monthly_Expenses <-
 # between includes -1 in order to exclude the current week
 
 P_Weekly_Expense <-
-  Narrow_D %>%
+  d_daily %>%
   mutate(Week = floor_date(Day, "week")) %>%
   filter(Amount > 0,
          Type %in% setdiff(Expense_List, "Rent"),
@@ -257,7 +217,7 @@ P_Weekly_Expense <-
 # | Plotly - Individual Expenses --------------------------------------------
 
 D0 <-
-  Narrow_D %>%
+  d_daily %>%
   filter(!Type %in% c("Rent", "Auto", "Healthcare", "Fees",
                       "Utilities"),
          Category == "Expense") %>%
@@ -286,51 +246,6 @@ DM <-
   ungroup() %>% group_by(Type) %>%
   mutate(Avg = runmean(Sum, k = 6, align = "right")) %>%
   ungroup()
-
-
-
-
-
-
-# --- The Plots
-
-# D_Types <- D0 %>% distinct(Type) %>% pull()
-# Data <- DM
-# Type <- quo(D_Types[[7]])
-#
-#   Data %>%
-#   filter(Type == !!Type) %>%
-#
-#   plot_ly(x = ~Date, y = ~Sum, type = "scatter", mode = "lines",
-#           text = ~paste(currency(Sum)), hoverinfo = "text", hoveron = "points",
-#
-#           line = list(shape = "hv", width = .5, color = "#3182bd")) %>%
-#
-#   add_trace(y = ~Avg, mode = "lines", hoverinfo = "none",
-#             line = list(shape = "spline", color = "red", width = 1.5)) %>%
-#   layout(
-#     font = list(size = 11),
-#     showlegend = FALSE,
-#     hovermode = "x",
-#     title = ~paste("Expense:", D_Types[[7]]),
-#     xaxis = list(title = "",
-#                  showgrid = TRUE,
-#                  showline = FALSE,
-#                  autotick = TRUE,
-#                  zeroline = TRUE),
-#
-#     yaxis = list(title = "",
-#                  showgrid = TRUE,
-#                  showticklabels = TRUE,
-#                  showline = TRUE,
-#                  autotick = TRUE,
-#                  ticks = "outside",
-#                  tickwidth = 1,
-#                  ticklen = 4,
-#                  zeroline = FALSE,
-#                  tozero = TRUE)
-#   )
-
 
 
 
@@ -404,7 +319,7 @@ plot_type_nest <-
 # | Plotly - Savings ------------------------------------------------------
 
 Savings_Cash <-
-  Table_Years %>%
+  d_annually %>%
   group_by(Year) %>%
   spread(Category, Sum) %>%
   transmute(Amount = Income - Debt - Expense - Savings,
@@ -412,7 +327,7 @@ Savings_Cash <-
 
 
 Savings_Income <-
-  Narrow_D %>%
+  d_daily %>%
   filter(Category %in% c("Income", "Savings")) %>%
   group_by(Year, Category, Type) %>%
   summarise(Amount = sum(Amount)) %>%
@@ -437,3 +352,31 @@ P_Savings <-
     layout(barmode = "relative",
            xaxis = list(title = ""),
            yaxis = list(title = ""))
+
+
+
+# Grocery -----------------------------------------------------------------
+
+d_grocery_top <-
+  d_expense %>%
+  filter(Type == "Groceries") %>%
+  count(Description, sort = TRUE) %>%
+  top_n(5, n) %>%
+  pull(Description)
+
+
+p_grocery_gg <-
+  d_expense %>%
+  filter(Description %in% d_grocery_top,
+         Type %in% c("Groceries", "Subscription")) %>%
+  ggplot() +
+  aes(x = fct_infreq(Description), y = Amount, fill = Description) +
+  geom_boxplot(varwidth = TRUE, color = "black") +
+  theme_minimal() +
+  # scale_fill_viridis_d() +
+    scale_fill_brewer(type = "div", palette = 5) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(x = NULL, y = NULL) +
+  guides(fill = "none") +
+  theme(axis.text = element_text(size = 11))
+

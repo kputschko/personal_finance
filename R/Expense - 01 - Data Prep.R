@@ -6,7 +6,7 @@ pacman::p_load(tidyverse, lubridate, forcats, readxl)
 
 # Import ------------------------------------------------------------------
 
-Expenses <-
+d_expense <-
   read_excel("data/My Money.xlsx", sheet = 1) %>%
   mutate_at(vars(Date), as_date) %>%
   drop_na(Date) %>%
@@ -17,11 +17,12 @@ Expenses <-
 # Prepare -----------------------------------------------------------------
 # The value 15229.15 is the amount present in my bank account at the end of 2015
 # I've forgoten where the 150 comes from
-# Multiplier is a net worth multiplier, IRA shifts money around so it's 0,
-# HSA and 401k are not measured by value of direct deposit, so value of 1 adds to N.W.
+# Multiplier is a net worth multiplier,
+# # IRA shifts money around so it's 0,
+# # HSA and 401k are not measured by value of direct deposit, so value of 1 adds to N.W.
 
-Narrow_D <-
-  Expenses %>%
+d_daily <-
+  d_expense %>%
   mutate(Day = as.Date(Date)) %>%
   group_by(Day, Type) %>%
   summarize(Amount = sum(Amount)) %>%
@@ -34,8 +35,8 @@ Narrow_D <-
 
     Category = fct_collapse(as_factor(Type),
                             "Savings" = c("IRA", "HSA - Income", "401k - Income"),
-                            "Income" = c("Income"),
-                            "Debt" = c("Student Loan", "Debt"),
+                            "Income"  = c("Income"),
+                            "Debt"    = c("Student Loan", "Debt"),
                             "Expense" = c("Auto", "Dining", "Drinks", "Entertainment",
                                           "Fees", "Fuel", "Groceries", "Healthcare",
                                           "Misc", "Rent", "Subscription", "Travel",
@@ -52,8 +53,8 @@ Narrow_D <-
 # Annual Tables -----------------------------------------------------------
 
 # -- Totals
-Table_Years <-
-  Narrow_D %>%
+d_annually <-
+  d_daily %>%
   filter(!is.na(Year)) %>%
   group_by(Year, Category) %>%
   summarise(Sum = sum(Amount)) %>%
@@ -63,23 +64,12 @@ Table_Years <-
 
 
 # -- Rates
-Table_Rates <-
-  Table_Years %>%
+d_rates <-
+  d_annually %>%
   spread(Category, Sum) %>%
   group_by(Year) %>%
   summarise(Expense_Rate = (Expense + Debt) / Income,
             Savings_Rate = Savings / Income)
 
-
-
-# Costco ------------------------------------------------------------------
-
-Table_Costco <-
-  Expenses %>%
-  filter(str_detect(str_to_lower(Description), "costco")) %>%
-  group_by(Type) %>%
-  summarise(Count = n(),
-            Total = sum(Amount),
-            Mean = mean(Amount))
 
 

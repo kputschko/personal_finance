@@ -109,26 +109,29 @@ plot_type_nest$Month_Travel
 ```
 
 
+Row
+-----------------------------------------------------------------------
+
+### Grocery Comparison
+```{r fig.height=5, fig.width=5}
+p_grocery_gg
+```
+
+
 Tables
 ======================================================================
 
 ### Raw Expense List
 ```{r}
-datatable(Expenses %>% mutate_at(vars(Type), factor),
+datatable(d_expense %>% mutate_at(vars(Type), factor),
           filter = "top",
           class = 'cell-border stripe',
           options = list(pageLength = 15,
                          autoWidth = TRUE))
 ```
 
-### Costco Summary
-```{r}
-kable(Table_Costco) %>% kable_styling()
-```
 
 ### Expense / Savings Ratio
 ```{r}
-kable(Table_Rates) %>% kable_styling()
+kable(d_rates) %>% kable_styling()
 ```
- 
-

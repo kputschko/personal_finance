@@ -1,0 +1,202 @@
+---
+title: "Personal Finance"
+output: 
+    flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+runtime: shiny
+---
+
+
+```{r include=FALSE}
+pacman::p_load(tidyverse, forcats, rlang, DT, shiny, lubridate)
+source('R/Expense - 02 - Explore.R')
+
+type_shortcut <- 
+  tribble(~Type, ~Shortcut,
+          "Groceries",     "gr",
+          "Income",        "in",
+          "Rent",          "rt",
+          "Utilities",     "ut",
+          "Entertainment", "et",
+          "Fuel",          "fl",
+          "Drinks",        "dr",
+          "Misc",          "msc",
+          "Student Loan",  "sl",
+          "HSA - Income",  "hsa",
+          "Dining",        "dn",
+          "Subscription",  "sb",
+          "Healthcare",    "hc",
+          "Travel",        "tr",
+          "Auto",          "at",
+          "Fees",          "fee",
+          "IRA",           "ira",
+          "Debt",          "dt",
+          "401k - Income", "401") %>%
+  arrange(Type)
+
+```
+
+# Raw Data
+
+
+## Row
+
+
+### Finance History
+
+```{r}
+d_expense %>% 
+  arrange(desc(Date), desc(Amount)) %>% 
+  mutate_at(vars(Type), as_factor) %>% 
+  datatable(filter = "top",
+            class = 'cell-border stripe',
+            options = list(pageLength = 20, autoWidth = TRUE)) %>% 
+  formatStyle(columns = "Type", 
+              target = "row",
+              backgroundColor = 
+                styleEqual(levels = c("Income", "401k - Income",
+                                      "HSA - Income", "IRA"),
+                           values = c("#78c679", rep("#41ab5d", 3))))
+
+```
+
+## Row
+
+
+### New Entries
+
+```{r}
+
+suggested_date <- today() %>% word(start = 1, end = 2, sep = "-")
+
+textInput("entry_yearmon", 
+          value = suggested_date,
+          placeholder = "YYYY-MM",
+          label = "Set year and month of new entries")
+
+textInput(inputId = "entry_string",
+          label = "New entries separated by ',' and '/'",
+          placeholder = "Day, Type, Description, Amount / ...")
+
+shiny_new_entries <- 
+  reactive({
+    
+    render_string <- input$entry_string
+    count_commas <- str_count(render_string, ",")
+    
+    if (count_commas == 0 || count_commas < 3) {
+      
+      tibble(Date = numeric(), 
+             Type = numeric(), 
+             Description = numeric(), 
+             Amount = numeric())
+      
+    } else {
+      
+      new_entries <-    
+        tibble(i = render_string) %>%
+        separate_rows(i, sep = "/") %>%
+        separate(i, sep = ",",
+                 into = c("Date", "Shortcut", "Description", "Amount")) %>%
+        mutate_all(str_trim) %>%
+        mutate(
+          Date = str_pad(Date, width = 2, side = "left", "0"),
+          Date = str_c(input$entry_yearmon, Date, sep = "-"),
+          # Description = str_to_title(Description),
+          Amount = Amount %>% as.numeric()) %>%
+        left_join(type_shortcut, by = "Shortcut") %>%
+        select(Date, Type, Description, Amount)
+      
+      return(new_entries)
+      
+    }
+  })
+
+
+renderTable(shiny_new_entries())
+
+
+
+
+```
+
+
+
+### New Entry Shortcuts
+```{r}
+type_shortcut %>%  knitr::kable(row.names = FALSE, align = "r")
+```
+
+### Export New Entries
+```{r}
+
+renderDT({
+  
+  # if (count_commas == 0 || count_commas < 3) {
+  new_entries %>% 
+    mutate_at(vars(Date), as_date()) %>% 
+    bind_rows(d_expense) %>% 
+    arrange(desc(Date), desc(Amount)) %>%
+    datatable()
+# }
+})
+
+
+```
+
+
+# Summary
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
+
+To learn more, see [Interactive Documents](http://rmarkdown.rstudio.com/authoring_shiny.html).
+
+## Inputs and Outputs
+
+You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change.  This demonstrates how a standard R plot can be made interactive by wrapping it in the Shiny `renderPlot` function. The `selectInput` and `sliderInput` functions create the input widgets used to drive the plot.
+
+```{r eruptions, echo=FALSE}
+inputPanel(
+  selectInput("n_breaks", label = "Number of bins:",
+              choices = c(10, 20, 35, 50), selected = 20),
+  
+  sliderInput("bw_adjust", label = "Bandwidth adjustment:",
+              min = 0.2, max = 2, value = 1, step = 0.2)
+)
+
+renderPlot({
+  hist(faithful$eruptions, probability = TRUE, breaks = as.numeric(input$n_breaks),
+       xlab = "Duration (minutes)", main = "Geyser eruption duration")
+  
+  dens <- density(faithful$eruptions, adjust = input$bw_adjust)
+  lines(dens, col = "blue")
+})
+```
+
+## Embedded Application
+
+It's also possible to embed an entire Shiny application within an R Markdown document using the `shinyAppDir` function. This example embeds a Shiny application located in another directory:
+
+```{r tabsets, echo=FALSE}
+shinyAppDir(
+  system.file("examples/06_tabsets", package = "shiny"),
+  options = list(
+    width = "100%", height = 550
+  )
+)
+```
+
+Note the use of the `height` parameter to determine how much vertical space the embedded application should occupy.
+
+You can also use the `shinyApp` function to define an application inline rather then in an external directory.
+
+In all of R code chunks above the `echo = FALSE` attribute is used. This is to prevent the R code within the chunk from rendering in the document alongside the Shiny components.
+
+
+

@@ -46,39 +46,88 @@ type_shortcut <-
 ### Finance History
 
 ```{r}
-d_expense %>% 
-  arrange(desc(Date), desc(Amount)) %>% 
-  mutate_at(vars(Type), as_factor) %>% 
-  datatable(filter = "top",
-            class = 'cell-border stripe',
-            options = list(pageLength = 20, autoWidth = TRUE)) %>% 
-  formatStyle(columns = "Type", 
-              target = "row",
-              backgroundColor = 
-                styleEqual(levels = c("Income", "401k - Income",
-                                      "HSA - Income", "IRA"),
-                           values = c("#78c679", rep("#41ab5d", 3))))
+
+# Input - Functions
+shiny_history <- reactive({
+  
+  if (input$bind_rows == 0) {
+    
+    d_expense %>% 
+      arrange(desc(Date), desc(Amount)) %>% 
+      mutate_at(vars(Type), as_factor)      
+    
+  } else {
+    
+    shiny_new_entries() %>%
+      mutate_at(vars(Date), as_date) %>%
+      bind_rows(d_expense) %>%
+      arrange(desc(Date), desc(Amount)) %>%
+      mutate_at(vars(Date), as.character) %>% 
+      mutate_at(vars(Type), as_factor) 
+    
+  }
+  
+})
+
+
+shiny_history_display <- reactive({
+  
+  shiny_history() %>% 
+    
+    datatable(filter = "top",
+              editable = TRUE,
+              class = 'cell-border stripe',
+              options = list(pageLength = 20, autoWidth = TRUE)) %>% 
+    
+    formatStyle(columns = "Type", 
+                target = "row",
+                backgroundColor = 
+                  styleEqual(levels = c("Income", "401k - Income",
+                                        "HSA - Income", "IRA"),
+                             values = c("#78c679", rep("#41ab5d", 3))))
+})
+
+# Output - Table
+renderDT(shiny_history_display())
 
 ```
 
+
 ## Row
+
+### Export New Entries
+```{r}
+
+# Input
+actionButton(inputId = "bind_rows", label = "Add Entries")
+
+# Input
+actionButton(inputId = "export_table", label = "Export History")
+
+# if (input$export_table > 0) {write_csv(shiny_history_display(), "data/test_output.csv")}
+
+```
 
 
 ### New Entries
-
 ```{r}
 
+# Output
 suggested_date <- today() %>% word(start = 1, end = 2, sep = "-")
 
+# Input
 textInput("entry_yearmon", 
           value = suggested_date,
           placeholder = "YYYY-MM",
           label = "Set year and month of new entries")
 
+# Input
 textInput(inputId = "entry_string",
           label = "New entries separated by ',' and '/'",
           placeholder = "Day, Type, Description, Amount / ...")
 
+
+# Output - Function
 shiny_new_entries <- 
   reactive({
     
@@ -94,7 +143,7 @@ shiny_new_entries <-
       
     } else {
       
-      new_entries <-    
+      
         tibble(i = render_string) %>%
         separate_rows(i, sep = "/") %>%
         separate(i, sep = ",",
@@ -107,42 +156,21 @@ shiny_new_entries <-
           Amount = Amount %>% as.numeric()) %>%
         left_join(type_shortcut, by = "Shortcut") %>%
         select(Date, Type, Description, Amount)
-      
-      return(new_entries)
-      
     }
   })
 
-
+# Output
 renderTable(shiny_new_entries())
-
-
-
 
 ```
 
 
+
+## Row
 
 ### New Entry Shortcuts
 ```{r}
 type_shortcut %>%  knitr::kable(row.names = FALSE, align = "r")
-```
-
-### Export New Entries
-```{r}
-
-renderDT({
-  
-  # if (count_commas == 0 || count_commas < 3) {
-  new_entries %>% 
-    mutate_at(vars(Date), as_date()) %>% 
-    bind_rows(d_expense) %>% 
-    arrange(desc(Date), desc(Amount)) %>%
-    datatable()
-# }
-})
-
-
 ```
 
 

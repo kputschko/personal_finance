@@ -2,6 +2,7 @@
 title: "Personal Finance"
 output: 
     flexdashboard::flex_dashboard:
+    storyboard: true
     orientation: rows
     vertical_layout: scroll
 runtime: shiny
@@ -9,11 +10,14 @@ runtime: shiny
 
 
 ```{r include=FALSE}
-pacman::p_load(tidyverse, forcats, rlang, DT, shiny, lubridate)
+pacman::p_load(tidyverse, forcats, rlang, DT, shiny, lubridate, shinyjs, shinyBS)
+useShinyjs(rmd = TRUE)
+
 source('R/Expense - 02 - Explore.R')
 
+
 type_shortcut <- 
-  tribble(~Type, ~Shortcut,
+  tribble(~ Type,          ~ Shortcut,
           "Groceries",     "gr",
           "Income",        "in",
           "Rent",          "rt",
@@ -45,7 +49,7 @@ type_shortcut <-
 
 ### Finance History
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 
 # Input - Functions
 shiny_history <- reactive({
@@ -76,15 +80,18 @@ shiny_history_display <- reactive({
     
     datatable(filter = "top",
               editable = TRUE,
+              extensions = c("Buttons"),
               class = 'cell-border stripe',
-              options = list(pageLength = 20, autoWidth = TRUE)) %>% 
+              options = list(pageLength = 15,
+                             buttons = list(extend = "csv", filename = "test"),
+                             dom = "Bfrtip",
+                             autoWidth = TRUE)) %>% 
     
     formatStyle(columns = "Type", 
                 target = "row",
-                backgroundColor = 
-                  styleEqual(levels = c("Income", "401k - Income",
-                                        "HSA - Income", "IRA"),
-                             values = c("#78c679", rep("#41ab5d", 3))))
+                backgroundColor = styleEqual(
+                  levels = c("Income", "401k - Income", "HSA - Income", "IRA"),
+                  values = c("#78c679", rep("#41ab5d", 3))))
 })
 
 # Output - Table
@@ -102,15 +109,21 @@ renderDT(shiny_history_display())
 actionButton(inputId = "bind_rows", label = "Add Entries")
 
 # Input
-actionButton(inputId = "export_table", label = "Export History")
+# downloadButton(outputId = "export_table", label = "Export History")
 
-# if (input$export_table > 0) {write_csv(shiny_history_display(), "data/test_output.csv")}
+# output$export_table <- 
+#   downloadHandler(
+#     filename = function() {"data/test.csv"},
+#     content  = function(file) {write_csv(shiny_history_display(), file)}
+#   )
+
+# renderDT(shiny_history_display())
 
 ```
 
 
 ### New Entries
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 
 # Output
 suggested_date <- today() %>% word(start = 1, end = 2, sep = "-")
@@ -169,7 +182,7 @@ renderTable(shiny_new_entries())
 ## Row
 
 ### New Entry Shortcuts
-```{r}
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 type_shortcut %>%  knitr::kable(row.names = FALSE, align = "r")
 ```
 
